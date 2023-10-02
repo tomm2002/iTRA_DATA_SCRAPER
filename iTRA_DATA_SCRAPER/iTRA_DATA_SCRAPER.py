@@ -35,26 +35,51 @@ class Bot:
         box = self.driver.find_element(By.ID, id_name)
         box.send_keys(text)   
         
-    def __find_itra_points(self, link_to_athlete:str):
-        pass
+    def __find_elements(self):
+        """ 
+        We wait for elements to load. If there are 0, we go sleep again and search
+        """
         
-    def find_runner(self, name:str):
+        sleep(3)
+        max_tries = 4
         
+        for _ in range(max_tries):
+            try:
+                scraped_data = self.driver.find_elements(By.CSS_SELECTOR, '.col-md-10.p-2')
+            except StaleElementReferenceException:
+                break
+            
+            if len(scraped_data) != None:
+                return scraped_data
+                print(_)
+                
+    def __insert_and_click(self, name):
         self.driver.get('https://itra.run/Runners/FindARunner')
-        
-        self.__insert_text_by_id('runnername', name)
-        for _ in range(5):
-            pyautogui.press('enter')
-            
-        sleep(5)        
 
-        try:
-           scraped_data = self.driver.find_elements(By.CSS_SELECTOR, '.col-md-10.p-2')
-        except StaleElementReferenceException:
-            print("Stale element")
+        self.__insert_text_by_id('runnername', name)
+
+        # Click the button 'Find'
+        buttons = self.driver.find_elements(By.CSS_SELECTOR,'.btn.btn-itra-green-black')
+        for button in buttons:
+            try:
+                button.click()
+            except:
+                pass
+
+    def get_runner_data(self, name:str):
+
+        self.__insert_and_click(name)
+        scraped_data = self.__find_elements()
+        
+        if scraped_data == None:
+            #If we couln't get runners info, we try again with the search
+            self.__insert_and_click(name)
+            scraped_data = self.__find_elements() 
             
-        print(f'Found {len(scraped_data )} people with input as "{name}"')
-            
+            if scraped_data == None:
+                print("Coulnd't find runner by the name of: ", name)
+
+
         #define the keys and array where we will store the dicts
         athletes = []
         keys = ['Full_Name', 'Country', 'Age_Group', 'iTRA_Index', 'Races']
@@ -81,40 +106,13 @@ class Bot:
          
         return athletes
                 
-    
-
-
-
-
-
-        
-
-                
-
-
-
-
-
-
-
-
-
-            
-
-                            
-                            
-
-
-
-
-
 
         
 if __name__ == "__main__":
     bot = Bot()
     a = [1,2]
 
-    bot.find_runner('tomaz miklavcic')
+    print(bot.get_runner_data('tomaz miklavcic'))
     sleep(5)
 
 
