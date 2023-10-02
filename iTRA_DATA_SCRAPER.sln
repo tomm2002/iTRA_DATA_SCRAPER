@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.7.34024.191
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "iTRA_DATA_SCRAPER", "iTRA_DATA_SCRAPER\iTRA_DATA_SCRAPER.pyproj", "{EE842BCF-3D5A-46B1-99B5-4A3604B1405E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EE842BCF-3D5A-46B1-99B5-4A3604B1405E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE842BCF-3D5A-46B1-99B5-4A3604B1405E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3DE15975-BE36-408E-B299-F9A6E0167D39}
+	EndGlobalSection
+EndGlobal
