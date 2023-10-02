@@ -55,22 +55,40 @@ class Bot:
             
         print(f'Found {len(scraped_data )} people with input as "{name}"')
             
-        athletes_data = []
-        for athlete_data_from_scrape in scraped_data :
-           
+        #define the keys and array where we will store the dicts
+        athletes = []
+        keys = ['Full_Name', 'Country', 'Age_Group', 'iTRA_Index', 'Races']
+        
+        # Create an empty dictionary with default values: None
+        athlete_dict = {key: None for key in keys}
+
+        for athlete_data_from_scrape in scraped_data:
+
             lines = athlete_data_from_scrape.text.split('\n')
 
-            for atribute in lines:
-                #Split the line wiht unecesery text
+            for key,atribute in zip(keys,lines):
+                
+                #some lines have extra labes with : . We use the right ([1]) part of the string
                 splited_data = atribute.split(':')
+
                 try:
-                    athletes_data.append(splited_data[1])
+                    athlete_dict[key] = splited_data[1]
                 except IndexError:
-                    #if there is no : , then we just use the original text
-                    athletes_data.append(splited_data)
+                    #if there is no label, we just use the original text
+                    athlete_dict[key] = splited_data[0]
+                    
+                    athletes.append(athlete_dict)
+         
+        return athletes
+                
+    
 
 
-            print(athletes_data)
+
+
+
+        
+
                 
 
 
