@@ -49,39 +49,40 @@ class Bot:
         sleep(5)        
 
         try:
-           scrape_data = self.driver.find_elements(By.CSS_SELECTOR, '.col-md-10.p-2')
+           scraped_data = self.driver.find_elements(By.CSS_SELECTOR, '.col-md-10.p-2')
         except StaleElementReferenceException:
             print("Stale element")
             
-        print(f'Found {len(scrape_data )} people with input as "{name}"')
+        print(f'Found {len(scraped_data )} people with input as "{name}"')
             
-        for athlete_data_from_scrape in scrape_data :
+        athletes_data = []
+        for athlete_data_from_scrape in scraped_data :
+           
+            lines = athlete_data_from_scrape.text.split('\n')
+
+            for atribute in lines:
+                #Split the line wiht unecesery text
+                splited_data = atribute.split(':')
+                try:
+                    athletes_data.append(splited_data[1])
+                except IndexError:
+                    #if there is no : , then we just use the original text
+                    athletes_data.append(splited_data)
+
+
+            print(athletes_data)
+                
+
+
+
+
+
+
+
+
+
             
-            # Name element
-            for athlete_data in scrape_data :
-                for _ in athlete_data:
-                    print(_)
-                print(athlete_data.text)
-                # names = element.find_elements(By.XPATH, './/span[@style="font-weight: 600"][1]')
-                # first_name = names[0].text
 
-                # # extract the surname
-                # surnames = element.find_elements(By.XPATH,'.//span[@style="font-weight: 600"][2]')
-                # last_name = surnames[0].text
-            
-            
-                # # extract the ranking
-
-                # ranking =  element.find_elements(By.XPATH,'.//div[span[contains(text(), "PERF. Index:")]]/span[last()]')
-                # rank = ranking[0].text
-
-
-
-                # athletes = {'name':      athlete_data[0].text, 
-                #             'country':   athlete_data[1].text, 
-                #             'age_group': athlete_data[2].text,
-                #             'index':     athlete_data[3].text,
-                #             'races':     athlete_data[4].text
                             
                             
 
@@ -93,5 +94,11 @@ class Bot:
         
 if __name__ == "__main__":
     bot = Bot()
+    a = [1,2]
+
     bot.find_runner('tomaz miklavcic')
     sleep(5)
+
+
+
+
