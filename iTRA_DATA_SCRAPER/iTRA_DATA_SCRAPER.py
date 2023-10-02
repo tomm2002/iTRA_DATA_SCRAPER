@@ -19,6 +19,7 @@ class Bot:
         self.driver = webdriver.Edge(options=self.options)  #apply options
         self.driver.maximize_window()                       # Some buttons can't be located if the window is not maximized
         os.system('cls' if os.name == 'nt' else 'clear')    #clear console
+        pass
         
     def __click_by_id(self, id_name:str, wait_time=10):
         """
