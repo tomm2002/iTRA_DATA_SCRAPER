@@ -8,7 +8,7 @@ from selenium.webdriver.common.by import By
 import os
 import pyautogui
 from time import sleep
-
+from selenium.webdriver.common.keys import Keys
 
 class Bot:
     """
@@ -21,6 +21,7 @@ class Bot:
         self.driver = webdriver.Edge(options=self.options)  #apply options
         self.driver.maximize_window()                       # Some buttons can't be located if the window is not maximized
         os.system('cls' if os.name == 'nt' else 'clear')    #clear console
+        #self.__open_tabs()
         pass
         
     def __click_by_id(self, id_name:str, wait_time=10):
@@ -59,24 +60,25 @@ class Bot:
             sleep(3) 
                 
     def __insert_and_click(self, name):
-        self.driver.get('https://itra.run/Runners/FindARunner')
 
         self.__insert_text_by_id('runnername', name)
-
-        # Click the button 'Find'
-        buttons = self.driver.find_elements(By.CSS_SELECTOR,'.btn.btn-itra-green-black')
-        for button in buttons:
-            try:
-                button.click()
-            except:
-                pass
-        sleep(2)
-
-    def get_runner_data(self, name:str):
-
-        self.__insert_and_click(name)
-        scraped_data = self.__find_elements()
         
+        for _ in range(10):
+            
+            element = (self.driver.find_element(By.ID, 'runnername'))
+            element.click()
+            element.send_keys(Keys.ENTER)
+
+            # Click the button 'Find'
+            buttons = self.driver.find_elements(By.CSS_SELECTOR,'.btn.btn-itra-green-black')
+            for button in buttons:
+                try:
+                    button.click()
+                except:
+                    pass
+            
+    def __collect_data(self, name):
+        scraped_data = self.__find_elements()
         
         if scraped_data == None:
             print("Coulnd't find runner by the name of: ", name)
@@ -107,8 +109,39 @@ class Bot:
                     
                     athletes.append(athlete_dict)
          
-        return athletes
-                
+        return athletes        
+
+    def get_runner_data(self, names):
+    
+        failed_names = [] 
+        data = []
+        #Necesery for to have the first tab the right page
+        self.driver.get('https://itra.run/Runners/FindARunner') 
+        
+        #open all tabs
+        for _ in range(len(names)):
+            self.driver.execute_script(f"window.open('{'https://itra.run/Runners/FindARunner'}');")
+            
+        #insert names 
+        for i,name in enumerate(names):
+            self.driver.switch_to.window(self.driver.window_handles[i])
+            self.__insert_and_click(name)
+
+        #go to first tab and collect data
+        for j,name in enumerate(names):
+            self.driver.switch_to.window(self.driver.window_handles[0])
+            athlete_data = self.__collect_data(name)
+            
+            #Store the names we failed to scrape, so we can try again later
+            if athlete_data == None:
+                failed_names.append(name)
+            else:
+                data.append(athlete_data)  
+              
+            self.driver.close()
+            
+        return data, failed_names
+
     def read_names_from_txt(self):
         # Get the directory where the script (exe) is located
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -117,8 +150,8 @@ class Bot:
         file_path = os.path.join(script_dir, 'imena.txt')
         names = []
         
-        try:
-            with open(file_path, 'r') as file:
+        try: 
+            with open(file_path, 'r', encoding='utf-8') as file:
                 # Read each line of the text document
                 lines = file.readlines()
                 # Split each line by newline character '\n' and append to the names list
@@ -134,15 +167,23 @@ class Bot:
             
         return 0
             
-        
+
+
+def main():
+    bot = Bot()
+
+    names = bot.read_names_from_txt() 
+    
+    for i in range(0, len(names), 10):
+        chunk = names[i:i+10]
+        data, failed_names = bot.get_runner_data(chunk)
+
+        print(f'failed names: {failed_names}')
+
+    sleep(5)   
         
 if __name__ == "__main__":
-    bot = Bot()
-    #print(bot.get_runner_data('anze sobocan'))
-    
-    print(bot.read_names_from_txt() )
-
-    sleep(5)
+    main()
 
 
 
