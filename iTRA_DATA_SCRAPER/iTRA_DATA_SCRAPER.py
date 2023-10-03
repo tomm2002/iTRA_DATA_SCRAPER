@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException, ElementClickInterceptedException
@@ -40,19 +42,21 @@ class Bot:
         """ 
         We wait for elements to load. If there are 0, we go sleep again and search
         """
-        
-        sleep(3)
+
         max_tries = 4
         
         for _ in range(max_tries):
             try:
                 scraped_data = self.driver.find_elements(By.CSS_SELECTOR, '.col-md-10.p-2')
             except StaleElementReferenceException:
-                break
+                print("Stale element encountered. Retrying...")
+                continue
             
-            if len(scraped_data) != None:
+            if len(scraped_data) > 0:
                 return scraped_data
-                print(_)
+            
+                    
+            sleep(3) 
                 
     def __insert_and_click(self, name):
         self.driver.get('https://itra.run/Runners/FindARunner')
@@ -66,19 +70,17 @@ class Bot:
                 button.click()
             except:
                 pass
+        sleep(2)
 
     def get_runner_data(self, name:str):
 
         self.__insert_and_click(name)
         scraped_data = self.__find_elements()
         
+        
         if scraped_data == None:
-            #If we couln't get runners info, we try again with the search
-            self.__insert_and_click(name)
-            scraped_data = self.__find_elements() 
-            
-            if scraped_data == None:
-                print("Coulnd't find runner by the name of: ", name)
+            print("Coulnd't find runner by the name of: ", name)
+            return None
 
 
         #define the keys and array where we will store the dicts
@@ -107,13 +109,39 @@ class Bot:
          
         return athletes
                 
+    def read_names_from_txt(self):
+        # Get the directory where the script (exe) is located
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        #join the file path from exe to txt document
+        file_path = os.path.join(script_dir, 'imena.txt')
+        names = []
+        
+        try:
+            with open(file_path, 'r') as file:
+                # Read each line of the text document
+                lines = file.readlines()
+                # Split each line by newline character '\n' and append to the names list
+                names = [line.strip() for line in lines]
+                
+                return names
 
+
+        except FileNotFoundError:
+            print(f"File '{file_path}' not found. Make sure to place 'imena' in the same folder as the exe file.")
+        except Exception as e:
+            print(f"An error occurred: {str(e)}")
+            
+        return 0
+            
+        
         
 if __name__ == "__main__":
     bot = Bot()
-    a = [1,2]
+    #print(bot.get_runner_data('anze sobocan'))
+    
+    print(bot.read_names_from_txt() )
 
-    print(bot.get_runner_data('tomaz miklavcic'))
     sleep(5)
 
 
