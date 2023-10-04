@@ -115,8 +115,9 @@ class Bot:
     
         failed_names = [] 
         data = []
-        #Necesery for to have the first tab the right page
-        self.driver.get('https://itra.run/Runners/FindARunner') 
+        
+        #always switch to defoult first tab. It will be "data;"
+        self.driver.switch_to.window(self.driver.window_handles[0])
         
         #open all tabs
         for _ in range(len(names)):
@@ -124,12 +125,12 @@ class Bot:
             
         #insert names 
         for i,name in enumerate(names):
-            self.driver.switch_to.window(self.driver.window_handles[i])
+            self.driver.switch_to.window(self.driver.window_handles[i+1]) #+1 bc firrst tab is empty
             self.__insert_and_click(name)
 
         #go to first tab and collect data
         for j,name in enumerate(names):
-            self.driver.switch_to.window(self.driver.window_handles[0])
+            self.driver.switch_to.window(self.driver.window_handles[0+1])#+1 bc firrst tab is empty
             athlete_data = self.__collect_data(name)
             
             #Store the names we failed to scrape, so we can try again later
