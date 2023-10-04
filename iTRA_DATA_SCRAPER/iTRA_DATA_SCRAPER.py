@@ -58,7 +58,7 @@ class Bot:
                 return scraped_data, 'ok'
             else:
                 #try to find text "0 runners found", meaning account doesn't excist
-                scraped_data = self.driver.find_elements((By.XPATH, "//h3[contains(text(), 'RUNNERS FOUND')]"))
+                scraped_data = self.driver.find_elements(By.XPATH, "//h3[contains(text(), 'RUNNERS FOUND')]")
                 if scraped_data:
                     return None, 'not_excisting'
                 else:
@@ -97,11 +97,11 @@ class Bot:
         elif status == 'not_excisting':
             print("Coulnd't find runner by the name of: ", name)
             no_excisting_accounts.append(name)
-            return None
+            return None, no_excisting_accounts, failed_names
         elif status == 'error':
             print(f"Error when searching name {name}. Will try again later")
             failed_names.append(name)
-            return None
+            return None, no_excisting_accounts, failed_names
         
         #define the keys and array where we will store the dicts
         athletes = []
@@ -127,7 +127,7 @@ class Bot:
                     
                     athletes.append(athlete_dict)
          
-        return athletes        
+        return athletes, no_excisting_accounts, failed_names       
 
     def get_runner_data(self, names):
     
@@ -150,8 +150,17 @@ class Bot:
         #go to first tab and collect data
         for j,name in enumerate(names):
             self.driver.switch_to.window(self.driver.window_handles[0+1])#+1 bc first tab is empty
-            athlete_data = self.__collect_data(name)
-            data.append(athlete_data)  
+            athlete_data,no_acc,failed_acc = self.__collect_data(name)
+            
+            if athlete_data:
+                data.append(athlete_data)  
+            elif no_acc:
+                no_excisting_accounts.append(no_acc)
+            elif failed_acc:
+                failed_names.append(failed_acc)
+            else:
+                print("Problem with if statment for sorting names into propeer array (if succesfull)")
+
             self.driver.close()
 
             
