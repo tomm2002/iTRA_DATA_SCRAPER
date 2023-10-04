@@ -53,11 +53,19 @@ class Bot:
                 print("Stale element encountered. Retrying...")
                 continue
             
+            #return good data
             if len(scraped_data) > 0:
-                return scraped_data
-            
+                return scraped_data, 'ok'
+            else:
+                #try to find text "0 runners found", meaning account doesn't excist
+                scraped_data = self.driver.find_elements((By.XPATH, "//h3[contains(text(), 'RUNNERS FOUND')]"))
+                if scraped_data:
+                    return None, 'not_excisting'
+                else:
+                    #try again
+                    sleep(3) 
                     
-            sleep(3) 
+            return None, 'error'
                 
     def __insert_and_click(self, name):
 
@@ -78,13 +86,23 @@ class Bot:
                     pass
             
     def __collect_data(self, name):
-        scraped_data = self.__find_elements()
+        no_excisting_accounts = []
+        failed_names = []     
         
-        if scraped_data == None:
+        scraped_data, status = self.__find_elements()
+        
+        #error handeling
+        if status == 'ok':
+            print("Scraped data for name: ", name)
+        elif status == 'not_excisting':
             print("Coulnd't find runner by the name of: ", name)
+            no_excisting_accounts.append(name)
             return None
-
-
+        elif status == 'error':
+            print(f"Error when searching name {name}. Will try again later")
+            failed_names.append(name)
+            return None
+        
         #define the keys and array where we will store the dicts
         athletes = []
         keys = ['Full_Name', 'Country', 'Age_Group', 'iTRA_Index', 'Races']
@@ -113,6 +131,7 @@ class Bot:
 
     def get_runner_data(self, names):
     
+        no_excisting_accounts = []
         failed_names = [] 
         data = []
         
@@ -125,21 +144,16 @@ class Bot:
             
         #insert names 
         for i,name in enumerate(names):
-            self.driver.switch_to.window(self.driver.window_handles[i+1]) #+1 bc firrst tab is empty
+            self.driver.switch_to.window(self.driver.window_handles[i+1]) #+1 bc first tab is empty
             self.__insert_and_click(name)
 
         #go to first tab and collect data
         for j,name in enumerate(names):
-            self.driver.switch_to.window(self.driver.window_handles[0+1])#+1 bc firrst tab is empty
+            self.driver.switch_to.window(self.driver.window_handles[0+1])#+1 bc first tab is empty
             athlete_data = self.__collect_data(name)
-            
-            #Store the names we failed to scrape, so we can try again later
-            if athlete_data == None:
-                failed_names.append(name)
-            else:
-                data.append(athlete_data)  
-              
+            data.append(athlete_data)  
             self.driver.close()
+
             
         return data, failed_names
 
