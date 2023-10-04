@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from _pytest.legacypath import Node_fspath
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException, ElementClickInterceptedException
@@ -85,23 +86,14 @@ class Bot:
                 except:
                     pass
             
-    def __collect_data(self, name):
-        no_excisting_accounts = []
-        failed_names = []     
+    def __collect_data(self):
+        """
+        Collects data from the current tab we are on. Returns dictionary of athletes data
+        """
         
         scraped_data, status = self.__find_elements()
-        
-        #error handeling
-        if status == 'ok':
-            print("Scraped data for name: ", name)
-        elif status == 'not_excisting':
-            print("Coulnd't find runner by the name of: ", name)
-            no_excisting_accounts.append(name)
-            return None, no_excisting_accounts, failed_names
-        elif status == 'error':
-            print(f"Error when searching name {name}. Will try again later")
-            failed_names.append(name)
-            return None, no_excisting_accounts, failed_names
+        if not scraped_data:
+            return None, status 
         
         #define the keys and array where we will store the dicts
         athletes = []
@@ -127,7 +119,7 @@ class Bot:
                     
                     athletes.append(athlete_dict)
          
-        return athletes, no_excisting_accounts, failed_names       
+        return athletes, status    
 
     def get_runner_data(self, names):
     
@@ -150,16 +142,21 @@ class Bot:
         #go to first tab and collect data
         for j,name in enumerate(names):
             self.driver.switch_to.window(self.driver.window_handles[0+1])#+1 bc first tab is empty
-            athlete_data,no_acc,failed_acc = self.__collect_data(name)
+            athlete_data, status = self.__collect_data()
+            self.driver.close()
             
-            if athlete_data:
-                data.append(athlete_data)  
-            elif no_acc:
-                no_excisting_accounts.append(no_acc)
-            elif failed_acc:
-                failed_names.append(failed_acc)
-            else:
-                print("Problem with if statment for sorting names into propeer array (if succesfull)")
+            #error handeling
+            if status == 'ok':
+                print("Scraped data for name: ", name)
+                data.append(athlete_data)
+            elif status == 'not_excisting':
+                print("Coulnd't find runner by the name of: ", name)
+                no_excisting_accounts.append(name)
+                return None, no_excisting_accounts, failed_names
+            elif status == 'error':
+                print(f"Error when searching name {name}. Will try again later")
+                failed_names.append(name)
+                return None, no_excisting_accounts, failed_names
 
             self.driver.close()
 
@@ -190,8 +187,11 @@ class Bot:
             print(f"An error occurred: {str(e)}")
             
         return 0
-            
-
+    
+    def test(self):
+        self.driver.get('https://itra.run/Runners/FindARunner')
+        self.__insert_and_click('DI SOMMA Roberto')   
+        athlete_data,no_acc,failed_acc = self.__collect_data('DI SOMMA Roberto')
 
 def main():
     bot = Bot()
@@ -200,9 +200,10 @@ def main():
     
     for i in range(0, len(names), 10):
         chunk = names[i:i+10]
-        data, failed_names = bot.get_runner_data(chunk)
+        data, no_excisting_accounts, failed_names = bot.get_runner_data(chunk)
 
         print(f'failed names: {failed_names}')
+        print(f'accounts that do not excist: {no_excisting_accounts}')
 
     sleep(5)   
         
