@@ -3,7 +3,7 @@
 from _pytest.legacypath import Node_fspath
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException, ElementClickInterceptedException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException, ElementClickInterceptedException, WebDriverException
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 import os
@@ -59,12 +59,19 @@ class Bot:
                 return scraped_data, 'ok'
             else:
                 #try to find text "0 runners found", meaning account doesn't excist
-                scraped_data = self.driver.find_elements(By.XPATH, "//h3[contains(text(), 'RUNNERS FOUND')]")
-                if scraped_data:
-                    return None, 'not_excisting'
-                else:
-                    #try again
-                    sleep(3) 
+
+                # Find the h3 elements
+                elements = self.driver.find_elements(By.TAG_NAME, "h3")
+
+                # Iterate over the elements
+                for el in elements:
+                # Check if 'RUNNERS FOUND' is in the element text
+                    if 'RUNNERS FOUND' in el.text:
+                        return None, 'not_excisting'
+
+                    else:
+                        #wait and try again
+                        sleep(3) 
                     
             return None, 'error'
                 
@@ -72,11 +79,18 @@ class Bot:
 
         self.__insert_text_by_id('runnername', name)
         
-        for _ in range(10):
+        for _ in range(4):
             
-            element = (self.driver.find_element(By.ID, 'runnername'))
-            element.click()
-            element.send_keys(Keys.ENTER)
+            try:
+                element = (self.driver.find_element(By.ID, 'runnername'))
+                element.click()
+                element.send_keys(Keys.ENTER)
+                self.driver.execute_script("window.scrollTo(0,0)")
+            except:
+                #User has problalby scroled down, so scroll to top of webpage
+                self.driver.execute_script("window.scrollTo(0,0)")
+                
+                
 
             # Click the button 'Find'
             buttons = self.driver.find_elements(By.CSS_SELECTOR,'.btn.btn-itra-green-black')
@@ -134,6 +148,8 @@ class Bot:
         for _ in range(len(names)):
             self.driver.execute_script(f"window.open('{'https://itra.run/Runners/FindARunner'}');")
             
+        sleep(2) #safety sleep
+
         #insert names 
         for i,name in enumerate(names):
             self.driver.switch_to.window(self.driver.window_handles[i+1]) #+1 bc first tab is empty
@@ -152,16 +168,12 @@ class Bot:
             elif status == 'not_excisting':
                 print("Coulnd't find runner by the name of: ", name)
                 no_excisting_accounts.append(name)
-                return None, no_excisting_accounts, failed_names
+
             elif status == 'error':
                 print(f"Error when searching name {name}. Will try again later")
                 failed_names.append(name)
-                return None, no_excisting_accounts, failed_names
 
-            self.driver.close()
-
-            
-        return data, failed_names
+        return data, no_excisting_accounts, failed_names
 
     def read_names_from_txt(self):
         # Get the directory where the script (exe) is located
@@ -190,20 +202,26 @@ class Bot:
     
     def test(self):
         self.driver.get('https://itra.run/Runners/FindARunner')
-        self.__insert_and_click('DI SOMMA Roberto')   
-        athlete_data,no_acc,failed_acc = self.__collect_data('DI SOMMA Roberto')
+        self.__insert_and_click('anze sobocan')   
+        athlete_data,status = self.__collect_data()
 
 def main():
+    no_excisting_accounts = []
+    failed_names = []
+    
     bot = Bot()
-
+    
     names = bot.read_names_from_txt() 
     
     for i in range(0, len(names), 10):
         chunk = names[i:i+10]
-        data, no_excisting_accounts, failed_names = bot.get_runner_data(chunk)
+        data, no_acc, failed_acc = bot.get_runner_data(chunk)
 
-        print(f'failed names: {failed_names}')
-        print(f'accounts that do not excist: {no_excisting_accounts}')
+        no_excisting_accounts.append(no_acc)
+        failed_names.append(failed_acc)
+        
+    print(f'failed names: {failed_names}')
+    print(f'accounts that do not excist: {no_excisting_accounts}')
 
     sleep(5)   
         
