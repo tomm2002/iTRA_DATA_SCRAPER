@@ -1,15 +1,39 @@
 # -*- coding: utf-8 -*-
 
-from _pytest.legacypath import Node_fspath
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException, ElementClickInterceptedException, WebDriverException
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 import os
-import pyautogui
+import urllib.request
 from time import sleep
 from selenium.webdriver.common.keys import Keys
+import urllib.request
+
+def check_internet():
+    while True:
+        try:
+            urllib.request.urlopen('http://google.com') 
+            return True
+        except:
+            return False
+
+def handle_exceptions(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            #check for internet
+            while True:
+                if check_internet():
+                    print("Internet is available")
+                    break
+                else:
+                    print("No internet. Waiting for connection...")
+                    sleep(5)  # Wait for 5 seconds before checking again
+            
+    return wrapper
 
 class Bot:
     """
@@ -25,6 +49,7 @@ class Bot:
         #self.__open_tabs()
         pass
         
+    @handle_exceptions
     def __click_by_id(self, id_name:str, wait_time=10):
         """
         Click a button that has 'id' element
@@ -32,17 +57,19 @@ class Bot:
         wait = WebDriverWait(self.driver, wait_time)
         login_button = wait.until(EC.element_to_be_clickable((By.ID, id_name)), message="Couldn't find the button. Try using to disable headles mode or maximize the window " )
         login_button.click()
-        
+     
+    @handle_exceptions
     def __insert_text_by_id(self, id_name: str, text: str):
         """
         Insert text into field that has 'id'
         """
         box = self.driver.find_element(By.ID, id_name)
         box.send_keys(text)   
-        
+      
+    @handle_exceptions
     def __find_elements(self):
         """ 
-        We wait for elements to load. If there are 0, we go sleep again and search
+        We wait for elements to load. If page not loaded, it sleeps and tries again. If text '0 RUNNERS FOUND', returns None and error
         """
 
         max_tries = 4
@@ -58,23 +85,24 @@ class Bot:
             if len(scraped_data) > 0:
                 return scraped_data, 'ok'
             else:
-                #try to find text "0 runners found", meaning account doesn't excist
-
-                # Find the h3 elements
+                #try to find text "0 runners found", meaning account doesn't excist. We check for 'RUNNERS FOUND' and for duble securety we check how many runners (it happed that there was 1 found)
                 elements = self.driver.find_elements(By.TAG_NAME, "h3")
-
-                # Iterate over the elements
-                for el in elements:
-                # Check if 'RUNNERS FOUND' is in the element text
-                    if 'RUNNERS FOUND' in el.text:
-                        return None, 'not_excisting'
-
-                    else:
-                        #wait and try again
-                        sleep(3) 
+                for element in elements:
+                    text = element.text
+                    if 'RUNNERS FOUND' in text:
+                        # split the text by spaces and remove empty strings
+                        words = [word for word in text.split(' ') if word]
+                        runners_found = int(words[0])  # assuming the number is always the first word in the text
+                        if runners_found:
+                            #rare error happened, when page loaded just the wrong time (after search for data, but before  search for RUNNERS FOUND)
+                            continue
+                        else:
+                            return None, 'not_excisting'
+                sleep(2)
                     
             return None, 'error'
-                
+      
+    @handle_exceptions
     def __insert_and_click(self, name):
 
         self.__insert_text_by_id('runnername', name)
@@ -99,7 +127,8 @@ class Bot:
                     button.click()
                 except:
                     pass
-            
+      
+    @handle_exceptions
     def __collect_data(self):
         """
         Collects data from the current tab we are on. Returns dictionary of athletes data
@@ -135,11 +164,15 @@ class Bot:
          
         return athletes, status    
 
+    @handle_exceptions
     def get_runner_data(self, names):
     
         no_excisting_accounts = []
         failed_names = [] 
         data = []
+        
+        #removes empty strings
+        names = [name for name in names if name]
         
         #always switch to defoult first tab. It will be "data;"
         self.driver.switch_to.window(self.driver.window_handles[0])
@@ -175,6 +208,7 @@ class Bot:
 
         return data, no_excisting_accounts, failed_names
 
+    @handle_exceptions
     def read_names_from_txt(self):
         # Get the directory where the script (exe) is located
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -204,22 +238,39 @@ class Bot:
         self.driver.get('https://itra.run/Runners/FindARunner')
         self.__insert_and_click('anze sobocan')   
         athlete_data,status = self.__collect_data()
-
-def main():
+        
+def data_scraping_routine(bot, names):
+    
     no_excisting_accounts = []
     failed_names = []
-    
-    bot = Bot()
-    
-    names = bot.read_names_from_txt() 
-    
+
     for i in range(0, len(names), 10):
         chunk = names[i:i+10]
         data, no_acc, failed_acc = bot.get_runner_data(chunk)
 
         no_excisting_accounts.append(no_acc)
-        failed_names.append(failed_acc)
-        
+        failed_names.append(failed_acc)  
+
+        return data, no_excisting_accounts, failed_names
+
+def flaten_and_remove_none(array):
+    array = sum(array)
+    array = [i for i in array if i is not None]
+    return array
+
+def main():    
+    bot = Bot()
+    
+    names = bot.read_names_from_txt() 
+
+    data, no_excisting_accounts, failed_names = data_scraping_routine(bot, names)
+    pass
+    if failed_names:
+        more_data, no_excisting_accounts, failed_names = data_scraping_routine(bot, failed_names   )
+        data.append(more_data)
+
+
+    
     print(f'failed names: {failed_names}')
     print(f'accounts that do not excist: {no_excisting_accounts}')
 
