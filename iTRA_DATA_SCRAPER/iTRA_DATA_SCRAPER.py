@@ -234,10 +234,6 @@ class Bot:
             
         return 0
     
-    def test(self):
-        self.driver.get('https://itra.run/Runners/FindARunner')
-        self.__insert_and_click('anze sobocan')   
-        athlete_data,status = self.__collect_data()
         
 def data_scraping_routine(bot, names):
     
