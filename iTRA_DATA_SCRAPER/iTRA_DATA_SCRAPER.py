@@ -251,20 +251,22 @@ def data_scraping_routine(bot, names):
         no_excisting_accounts.append(no_acc)
         failed_names.append(failed_acc)  
 
-        return data, no_excisting_accounts, failed_names
+        return data, flaten_and_remove_none(no_excisting_accounts), flaten_and_remove_none(failed_names)
 
 def flaten_and_remove_none(array):
-    array = sum(array)
-    array = [i for i in array if i is not None]
-    return array
+    return [name for sublist in array if sublist is not None for name in sublist]
+
 
 def main():    
     bot = Bot()
     
+    # gets names that user wants data
     names = bot.read_names_from_txt() 
 
+    # 1.iterration over names. 
     data, no_excisting_accounts, failed_names = data_scraping_routine(bot, names)
     pass
+    # Failed names are tried again 
     if failed_names:
         more_data, no_excisting_accounts, failed_names = data_scraping_routine(bot, failed_names   )
         data.append(more_data)
