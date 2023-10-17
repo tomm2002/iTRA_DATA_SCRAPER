@@ -11,6 +11,7 @@ from time import sleep
 from selenium.webdriver.common.keys import Keys
 import urllib.request
 from icecream import ic
+import pandas as pd
 
 
 def check_internet():
@@ -248,7 +249,15 @@ class Bot:
     
     @handle_exceptions
     def from_dict_to_excel(self, data):
-        ic(data)
+        """
+        Saves to .csv file (excel)
+        """
+        
+        # Flatten the list of lists into a list of dictionaries
+        flat_data = [item for sublist in data for item in sublist]
+        
+        df = pd.DataFrame(flat_data)
+        df.to_csv('podatki_tekacev.csv', index=False)
 
 def data_scraping_routine(bot, names):
     """
@@ -285,6 +294,7 @@ def main():
         data.append(more_data)
 
 
+    print(data)
     bot.from_dict_to_excel(data)
     print(f'failed names: {failed_names}')
     print(f'accounts that do not excist: {no_excisting_accounts}')
