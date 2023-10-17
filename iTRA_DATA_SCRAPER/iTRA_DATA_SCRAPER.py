@@ -248,7 +248,7 @@ class Bot:
         return 0
     
     @handle_exceptions
-    def from_dict_to_excel(self, data):
+    def from_dict_to_excel(self, data, file_name = 'podatki_tekacev.csv'):
         """
         Saves to .csv file (excel)
         """
@@ -257,7 +257,8 @@ class Bot:
         flat_data = [item for sublist in data for item in sublist]
         
         df = pd.DataFrame(flat_data)
-        df.to_csv('podatki_tekacev.csv', index=False)
+        df.to_csv(file_name, index=False)
+        print(f"Saved data to excel format with name {file_name} ")
 
 def data_scraping_routine(bot, names):
     """
