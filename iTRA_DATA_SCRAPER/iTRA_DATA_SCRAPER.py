@@ -155,16 +155,17 @@ class Bot:
             #some data is in format -> name:___, or without the "name:" labels
             for key,atribute in zip(keys,lines):
                 
-                #some lines have extra labes with : . We use the right ([1]) part of the string
-                splited_data = atribute.split(':')
-
-                # Create an empty dictionary with default values: None
+                # Create an empty dictionary to store data with default values: None
                 athlete_dict = {key: None for key in keys}
 
+                #we split the data with :
+                splited_data = atribute.split(':')
+
                 try:
+                    #some lines have extra labes with :  We use the right ([1]) part of the string
                     athlete_dict[key] = splited_data[1]
                 except IndexError:
-                    #if there is no label, we just use the original text
+                    #if there is no label followed by :, we just use the original text
                     athlete_dict[key] = splited_data[0]
                     
             athletes.append(athlete_dict)
@@ -177,11 +178,12 @@ class Bot:
         From array "names" takes a chunk of 10 names and does the scraping
         """
         
+        #based on succes, we store the nam into array or store the data to array
         no_excisting_accounts = []
         failed_names = [] 
         data = []
         
-        #removes empty strings
+        #removes empty strings -> none
         names = [name for name in names if name]
         
         #always switch to defoult first tab. It will be "data;"
