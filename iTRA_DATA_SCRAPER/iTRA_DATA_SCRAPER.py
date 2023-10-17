@@ -10,6 +10,8 @@ import urllib.request
 from time import sleep
 from selenium.webdriver.common.keys import Keys
 import urllib.request
+from icecream import ic
+
 
 def check_internet():
     while True:
@@ -134,6 +136,7 @@ class Bot:
         Collects data from the current tab we are on. Returns dictionary of athletes data
         """
         
+        # scrape for data
         scraped_data, status = self.__find_elements()
         if not scraped_data:
             return None, status 
@@ -142,17 +145,20 @@ class Bot:
         athletes = []
         keys = ['Full_Name', 'Country', 'Age_Group', 'iTRA_Index', 'Races']
         
-        # Create an empty dictionary with default values: None
-        athlete_dict = {key: None for key in keys}
-
+        #there could be more runners than just one in scraped_data
         for athlete_data_from_scrape in scraped_data:
-
+            
+            #by calling .txt, we get one string with data, seperated by \n
             lines = athlete_data_from_scrape.text.split('\n')
 
+            #some data is in format -> name:___, or without the "name:" labels
             for key,atribute in zip(keys,lines):
                 
                 #some lines have extra labes with : . We use the right ([1]) part of the string
                 splited_data = atribute.split(':')
+
+                # Create an empty dictionary with default values: None
+                athlete_dict = {key: None for key in keys}
 
                 try:
                     athlete_dict[key] = splited_data[1]
@@ -160,13 +166,16 @@ class Bot:
                     #if there is no label, we just use the original text
                     athlete_dict[key] = splited_data[0]
                     
-                    athletes.append(athlete_dict)
-         
+            athletes.append(athlete_dict)
+            
         return athletes, status    
 
     @handle_exceptions
-    def get_runner_data(self, names):
-    
+    def get_runner_data(self, names, time_wait):
+        """
+        From array "names" takes a chunk of 10 names and does the scraping
+        """
+        
         no_excisting_accounts = []
         failed_names = [] 
         data = []
@@ -190,7 +199,10 @@ class Bot:
 
         #go to first tab and collect data
         for j,name in enumerate(names):
-            self.driver.switch_to.window(self.driver.window_handles[0+1])#+1 bc first tab is empty
+            self.driver.switch_to.window(self.driver.window_handles[0+1])#+1 bc first tab is empty, -> "data;"
+            
+            # wait for pages to load
+            sleep(time_wait)
             athlete_data, status = self.__collect_data()
             self.driver.close()
             
@@ -234,15 +246,20 @@ class Bot:
             
         return 0
     
-        
+    @handle_exceptions
+    def from_dict_to_excel(self, data):
+        ic(data)
+
 def data_scraping_routine(bot, names):
-    
+    """
+    Routine for collecting data
+    """
     no_excisting_accounts = []
     failed_names = []
 
     for i in range(0, len(names), 10):
         chunk = names[i:i+10]
-        data, no_acc, failed_acc = bot.get_runner_data(chunk)
+        data, no_acc, failed_acc = bot.get_runner_data(names = chunk, time_wait = 3)
 
         no_excisting_accounts.append(no_acc)
         failed_names.append(failed_acc)  
@@ -261,14 +278,14 @@ def main():
 
     # 1.iterration over names. 
     data, no_excisting_accounts, failed_names = data_scraping_routine(bot, names)
-    pass
+
     # Failed names are tried again 
     if failed_names:
         more_data, no_excisting_accounts, failed_names = data_scraping_routine(bot, failed_names   )
         data.append(more_data)
 
 
-    
+    bot.from_dict_to_excel(data)
     print(f'failed names: {failed_names}')
     print(f'accounts that do not excist: {no_excisting_accounts}')
 
