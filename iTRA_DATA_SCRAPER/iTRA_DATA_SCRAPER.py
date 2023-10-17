@@ -146,17 +146,17 @@ class Bot:
         athletes = []
         keys = ['Full_Name', 'Country', 'Age_Group', 'iTRA_Index', 'Races']
         
-        #there could be more runners than just one in scraped_data
+        #This for loop if more runners found with the same name
         for athlete_data_from_scrape in scraped_data:
-            
+
+            # Create an empty dictionary
+            athlete_dict = {key: None for key in keys}            
+
             #by calling .txt, we get one string with data, seperated by \n
             lines = athlete_data_from_scrape.text.split('\n')
 
             #some data is in format -> name:___, or without the "name:" labels
             for key,atribute in zip(keys,lines):
-                
-                # Create an empty dictionary to store data with default values: None
-                athlete_dict = {key: None for key in keys}
 
                 #we split the data with :
                 splited_data = atribute.split(':')
