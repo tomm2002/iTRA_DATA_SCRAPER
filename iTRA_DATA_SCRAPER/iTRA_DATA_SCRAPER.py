@@ -118,8 +118,6 @@ class Bot:
                 #User has problalby scroled down, so scroll to top of webpage
                 self.driver.execute_script("window.scrollTo(0,0)")
                 
-                
-
             # Click the button 'Find'
             buttons = self.driver.find_elements(By.CSS_SELECTOR,'.btn.btn-itra-green-black')
             for button in buttons:
@@ -197,10 +195,10 @@ class Bot:
 
         #go to first tab and collect data
         for j,name in enumerate(names):
-            self.driver.switch_to.window(self.driver.window_handles[0+1])#+1 bc first tab is empty, -> "data;"
             
             # wait for pages to load
             sleep(time_wait)
+            self.driver.switch_to.window(self.driver.window_handles[0+1])#+1 bc first tab is empty, -> "data;"
             athlete_data, status = self.__collect_data()
             self.driver.close()
             
@@ -243,7 +241,7 @@ class Bot:
             
         return 0
     
-    def save_to_excel(self, data, failed_names, no_excisting_accounts, file_name = 'podatki_tekacev.csv'):
+    def save_to_excel(self, data, no_excisting_accounts, failed_names, file_name = 'podatki_tekacev.csv'):
         """
         Saves to .csv file (excel)
         """
@@ -259,7 +257,7 @@ class Bot:
         try:
             df.to_csv(file_name, index=False, encoding='utf-8-sig') #encoding='utf-8-sig' insures for special characters used in Slovan nations
         except PermissionError:   #If excel is open we save with random int
-            df.to_csv(file_name + randint(0,100), index=False, encoding='utf-8-sig')
+            df.to_csv(file_name + str(randint(0,100)), index=False, encoding='utf-8-sig')
         print(df)
         print(f"Saved data to excel format with name {file_name} ")
 
@@ -269,20 +267,23 @@ def data_scraping_routine(bot, names):
     """
     no_excisting_accounts = []
     failed_names = []
+    data = []
     
     #we take 10 names and scrape the data
     for i in range(0, len(names), 10):
         chunk = names[i:i+10]
-        data, no_acc, failed_acc = bot.get_runner_data(names = chunk, time_wait = 3)
+        scraped_data, no_acc, failed_acc = bot.get_runner_data(names = chunk, time_wait = 1)
 
-        no_excisting_accounts.append(no_acc)
-        failed_names.append(failed_acc)  
+        data.extend(scraped_data)
+        no_excisting_accounts.extend(no_acc)
+        failed_names.extend(failed_acc)  
 
+    ic(data)
     return remove_none_and_emptylists(data), remove_none_and_emptylists(no_excisting_accounts), remove_none_and_emptylists(failed_names)
 
 def remove_none_and_emptylists(data):
     """
-    Removes None from array
+    Removes None from array. 
     """    
     return [item for item in data if item is not None and item != []]
 
@@ -300,9 +301,10 @@ def main():
     # Failed names are tried again 
     if failed_names:
         more_data, no_excisting_accounts, failed_names = data_scraping_routine(bot, failed_names )
-        data.append(more_data)
-
-    bot.save_to_excel(data, failed_names, no_excisting_accounts)
+        data.extend(more_data)
+        
+    # Fix data and save
+    bot.save_to_excel(remove_none_and_emptylists(data), remove_none_and_emptylists(no_excisting_accounts), remove_none_and_emptylists(failed_names))
     print(f'failed names: {failed_names}')
     print(f'accounts that do not excist: {no_excisting_accounts}')
 
