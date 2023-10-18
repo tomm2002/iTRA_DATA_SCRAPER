@@ -246,8 +246,6 @@ class Bot:
         Saves to .csv file (excel)
         """
         
-        ic(data)
-        
         df3 = pd.DataFrame(data)
         df2 = pd.DataFrame(failed_names, columns=["Error when searching for:"])
         df1 = pd.DataFrame(no_excisting_accounts, columns=["Data couln't be found for:"])
@@ -300,15 +298,15 @@ def main():
 
     # Failed names are tried again 
     if failed_names:
-        more_data, no_excisting_accounts, failed_names = data_scraping_routine(bot, failed_names )
-        data.extend(more_data)
+        new_data, new_no_existing_accounts, failed_names  = data_scraping_routine(bot, failed_names )
+        
+        #we add no_ex_acc and data, but not failed names
+        no_excisting_accounts.extend(new_no_existing_accounts)
+        data.extend(new_data)
         
     # Fix data and save
     bot.save_to_excel(remove_none_and_emptylists(data), remove_none_and_emptylists(no_excisting_accounts), remove_none_and_emptylists(failed_names))
-    print(f'failed names: {failed_names}')
-    print(f'accounts that do not excist: {no_excisting_accounts}')
-
-    sleep(5)   
+ 
         
 if __name__ == "__main__":
     main()
