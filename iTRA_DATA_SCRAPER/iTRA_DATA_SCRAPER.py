@@ -12,7 +12,7 @@ from selenium.webdriver.common.keys import Keys
 import urllib.request
 from icecream import ic
 import pandas as pd
-
+from random import randint
 
 def check_internet():
     while True:
@@ -61,7 +61,6 @@ class Bot:
         login_button = wait.until(EC.element_to_be_clickable((By.ID, id_name)), message="Couldn't find the button. Try using to disable headles mode or maximize the window " )
         login_button.click()
      
-    @handle_exceptions
     def __insert_text_by_id(self, id_name: str, text: str):
         """
         Insert text into field that has 'id'
@@ -69,7 +68,6 @@ class Bot:
         box = self.driver.find_element(By.ID, id_name)
         box.send_keys(text)   
       
-    @handle_exceptions
     def __find_elements(self):
         """ 
         We wait for elements to load. If page not loaded, it sleeps and tries again. If text '0 RUNNERS FOUND', returns None and error
@@ -105,7 +103,6 @@ class Bot:
                     
             return None, 'error'
       
-    @handle_exceptions
     def __insert_and_click(self, name):
 
         self.__insert_text_by_id('runnername', name)
@@ -131,12 +128,11 @@ class Bot:
                 except:
                     pass
       
-    @handle_exceptions
     def __collect_data(self):
         """
-        Collects data from the current tab we are on. Returns dictionary of athletes data
-        """
-        
+        Collects data from the current tab we are on. Returns ARRAY of dictionaries and success status
+        """        
+
         # scrape for data
         scraped_data, status = self.__find_elements()
         if not scraped_data:
@@ -172,7 +168,6 @@ class Bot:
             
         return athletes, status    
 
-    @handle_exceptions
     def get_runner_data(self, names, time_wait):
         """
         From array "names" takes a chunk of 10 names and does the scraping
@@ -212,7 +207,7 @@ class Bot:
             #error handeling
             if status == 'ok':
                 print("Scraped data for name: ", name)
-                data.append(athlete_data)
+                data.extend(athlete_data)
             elif status == 'not_excisting':
                 print("Coulnd't find runner by the name of: ", name)
                 no_excisting_accounts.append(name)
@@ -223,7 +218,6 @@ class Bot:
 
         return data, no_excisting_accounts, failed_names
 
-    @handle_exceptions
     def read_names_from_txt(self):
         # Get the directory where the script (exe) is located
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -249,17 +243,24 @@ class Bot:
             
         return 0
     
-    @handle_exceptions
-    def from_dict_to_excel(self, data, file_name = 'podatki_tekacev.csv'):
+    def save_to_excel(self, data, failed_names, no_excisting_accounts, file_name = 'podatki_tekacev.csv'):
         """
         Saves to .csv file (excel)
         """
         
-        # Flatten the list of lists into a list of dictionaries
-        flat_data = [item for sublist in data for item in sublist]
+        ic(data)
         
-        df = pd.DataFrame(flat_data)
-        df.to_csv(file_name, index=False)
+        df3 = pd.DataFrame(data)
+        df2 = pd.DataFrame(failed_names, columns=["Error when searching for:"])
+        df1 = pd.DataFrame(no_excisting_accounts, columns=["Data couln't be found for:"])
+
+        df = pd.concat([df1, df2, df3], axis=1)
+
+        try:
+            df.to_csv(file_name, index=False, encoding='utf-8-sig') #encoding='utf-8-sig' insures for special characters used in Slovan nations
+        except PermissionError:   #If excel is open we save with random int
+            df.to_csv(file_name + randint(0,100), index=False, encoding='utf-8-sig')
+        print(df)
         print(f"Saved data to excel format with name {file_name} ")
 
 def data_scraping_routine(bot, names):
@@ -268,7 +269,8 @@ def data_scraping_routine(bot, names):
     """
     no_excisting_accounts = []
     failed_names = []
-
+    
+    #we take 10 names and scrape the data
     for i in range(0, len(names), 10):
         chunk = names[i:i+10]
         data, no_acc, failed_acc = bot.get_runner_data(names = chunk, time_wait = 3)
@@ -276,10 +278,14 @@ def data_scraping_routine(bot, names):
         no_excisting_accounts.append(no_acc)
         failed_names.append(failed_acc)  
 
-        return data, flaten_and_remove_none(no_excisting_accounts), flaten_and_remove_none(failed_names)
+    return remove_none_and_emptylists(data), remove_none_and_emptylists(no_excisting_accounts), remove_none_and_emptylists(failed_names)
 
-def flaten_and_remove_none(array):
-    return [name for sublist in array if sublist is not None for name in sublist]
+def remove_none_and_emptylists(data):
+    """
+    Removes None from array
+    """    
+    return [item for item in data if item is not None and item != []]
+
 
 
 def main():    
@@ -293,12 +299,10 @@ def main():
 
     # Failed names are tried again 
     if failed_names:
-        more_data, no_excisting_accounts, failed_names = data_scraping_routine(bot, failed_names   )
+        more_data, no_excisting_accounts, failed_names = data_scraping_routine(bot, failed_names )
         data.append(more_data)
 
-
-    print(data)
-    bot.from_dict_to_excel(data)
+    bot.save_to_excel(data, failed_names, no_excisting_accounts)
     print(f'failed names: {failed_names}')
     print(f'accounts that do not excist: {no_excisting_accounts}')
 
